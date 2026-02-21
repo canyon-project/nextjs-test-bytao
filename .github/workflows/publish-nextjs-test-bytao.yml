@@ -1,0 +1,53 @@
+# 自定义发包：将当前构建的 next 以 nextjs-test-bytao 发到 npm
+# 手动触发后执行：安装依赖 → 构建 → 发布为 nextjs-test-bytao
+name: Publish nextjs-test-bytao
+
+on:
+  workflow_dispatch:
+
+env:
+  NODE_LTS_VERSION: 20
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      NEXT_SKIP_NATIVE_POSTINSTALL: 1
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 25
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_LTS_VERSION }}
+          check-latest: true
+
+      - name: Setup corepack
+        run: |
+          npm i -g corepack@0.31
+          corepack enable
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Configure npm auth
+        run: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish as nextjs-test-bytao
+        run: node ./scripts/publish-nextjs-test-bytao.js
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # 可选：指定 dist-tag，默认 canary
+          # NPM_PUBLISH_TAG: canary

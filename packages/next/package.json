@@ -1,5 +1,5 @@
 {
-  "name": "next",
+  "name": "nextjs-test-bytao",
   "version": "16.2.0-canary.55",
   "description": "The React Framework",
   "main": "./dist/server/next.js",

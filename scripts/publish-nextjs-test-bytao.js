@@ -3,7 +3,7 @@
 /**
  * Publish the built `next` package as `nextjs-test-bytao` to npm.
  * Run after: pnpm install && pnpm run build
- * Requires: NODE_AUTH_TOKEN
+ * Requires: NPM_TOKEN
  */
 
 const path = require('path')
@@ -41,8 +41,8 @@ function rmRecursive(dir) {
 }
 
 ;(async () => {
-  if (!process.env.NODE_AUTH_TOKEN) {
-    console.error('NODE_AUTH_TOKEN is required')
+  if (!process.env.NPM_TOKEN) {
+    console.error('NPM_TOKEN is required')
     process.exit(1)
   }
 
@@ -63,6 +63,12 @@ function rmRecursive(dir) {
   const publishPkgPath = path.join(PUBLISH_DIR, 'package.json')
   const publishPkg = JSON.parse(fs.readFileSync(publishPkgPath, 'utf-8'))
   publishPkg.name = CUSTOM_NAME
+  // npm provenance requires repository to match the repo where the build ran (e.g. your fork)
+
+  publishPkg.repository = {
+    "type": "git",
+    "url": "git+https://github.com/canyon-project/nextjs-test-bytao.git"
+  }
   fs.writeFileSync(publishPkgPath, JSON.stringify(publishPkg, null, 2) + '\n')
 
   try {

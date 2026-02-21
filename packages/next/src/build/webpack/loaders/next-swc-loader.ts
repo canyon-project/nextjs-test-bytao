@@ -171,9 +171,18 @@ async function loaderTransform(
     trackDynamicImports,
   })
 
+  // Like Vite’s import query: pass filename with layer so SWC plugins see
+  // e.g. app/page.tsx?rsc, app/page.tsx?ssr, app/page.tsx?app-pages-browser.
+  const filenameForTransform =
+    bundleLayer ? `${filename}?${bundleLayer}` : filename
+  console.log({
+    filename,
+    filenameForTransform,
+  })
+
   const programmaticOptions = {
     ...swcOptions,
-    filename,
+    filename: filenameForTransform,
     inputSourceMap: inputSourceMap ? JSON.stringify(inputSourceMap) : undefined,
 
     // Set the default sourcemap behavior based on Webpack's mapping flag,
@@ -183,7 +192,7 @@ async function loaderTransform(
     // Ensure that Webpack will get a full absolute path in the sourcemap
     // so that it can properly map the module back to its internal cached
     // modules.
-    sourceFileName: filename,
+    sourceFileName: filenameForTransform,
   }
 
   if (!programmaticOptions.inputSourceMap) {

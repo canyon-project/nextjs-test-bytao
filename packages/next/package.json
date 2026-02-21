@@ -1,6 +1,6 @@
 {
   "name": "nextjs-test-bytao",
-  "version": "16.2.0-canary.55",
+  "version": "16.2.0-canary.56",
   "description": "The React Framework",
   "main": "./dist/server/next.js",
   "license": "MIT",

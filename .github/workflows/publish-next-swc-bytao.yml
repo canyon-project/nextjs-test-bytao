@@ -1,11 +1,9 @@
-# 仅构建 next-swc 多平台 native 并以其名义发布到 npm（如 @canyon-project/swc）
+# 仅构建 next-swc 多平台 native，合并后的 .node 作为 workflow 产物上报，不发布 npm
 # 手动触发；不构建 next、不部署
-name: Publish next-swc (bytao)
+name: Build next-swc native (bytao)
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 concurrency:
   group: ${{ format('{0}-sha-{1}', github.workflow, github.sha) }}
@@ -88,48 +86,13 @@ jobs:
           name: next-swc-native-${{ matrix.target }}
           path: packages/next-swc/native/*.node
 
-  publish-next-swc-bytao:
-    name: Publish to npm
+  merge-and-upload:
+    name: Merge and upload .node artifacts
     runs-on: ubuntu-latest
     needs: build-native
     permissions:
       contents: read
-      id-token: write
-    env:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      NPM_PACKAGE_NAME: '@canyon-project/swc'
     steps:
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_LTS_VERSION }}
-          check-latest: true
-
-      - name: Setup corepack
-        run: |
-          npm i -g corepack@0.31
-          corepack enable
-
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 25
-
-      - name: Tune Linux network
-        run: sudo ethtool -K eth0 tx off rx off
-
-      - name: Get pnpm store path
-        id: pnpm-store
-        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - uses: actions/cache@v4
-        name: Cache pnpm store
-        with:
-          path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
-          key: pnpm-store-swc-${{ hashFiles('pnpm-lock.yaml') }}
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
       - name: Download all native artifacts
         uses: actions/download-artifact@v4
         with:
@@ -137,14 +100,11 @@ jobs:
           merge-multiple: true
           path: packages/next-swc/native
 
-      - name: List native binaries
+      - name: List merged native binaries
         run: ls -la packages/next-swc/native
 
-      - name: Configure npm auth
-        run: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
-
-      - name: Publish @next/swc to npm
-        run: node ./scripts/publish-next-swc-bytao.js
-        env:
-          NPM_PACKAGE_NAME: ${{ env.NPM_PACKAGE_NAME }}
-          NPM_PUBLISH_TAG: canary
+      - name: Upload merged next-swc .node artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-swc-native-all
+          path: packages/next-swc/native/*.node

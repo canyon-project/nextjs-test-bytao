@@ -552,11 +552,10 @@ async fn parse_file_content(
             };
 
             let mut helpers = helpers.data();
-            // Like next-swc-loader: pass filename with layer query so SWC plugins see
-            // e.g. app/page.tsx?rsc, app/page.tsx?ssr, app/page.tsx?app-pages-browser.
+            // Like Vite: use named query params so SWC plugins see a structured id, extensible for
+            // future params (e.g. type=template, lang=ts). e.g. app/page.tsx?layer=app-rsc
             let file_path_display: String = if let Some(ref _layer) = layer_for_filename {
-                tracing::info!("[turbopack] filename-with-layer for SWC plugins (next-swc-loader compat)");
-                format!("{}?{}", fs_path.path, _layer)
+                format!("{}?layer={}", fs_path.path, _layer)
             } else {
                 fs_path.path.to_string()
             };

@@ -3,7 +3,7 @@
 /**
  * Publish the built `next` package as `nextjs-test-bytao` to npm.
  * Run after: pnpm install && pnpm run build
- * Requires: NPM_TOKEN
+ * Requires: NODE_AUTH_TOKEN
  */
 
 const path = require('path')
@@ -41,8 +41,8 @@ function rmRecursive(dir) {
 }
 
 ;(async () => {
-  if (!process.env.NPM_TOKEN) {
-    console.error('NPM_TOKEN is required')
+  if (!process.env.NODE_AUTH_TOKEN) {
+    console.error('NODE_AUTH_TOKEN is required')
     process.exit(1)
   }
 

@@ -272,6 +272,7 @@ pub async fn parse(
     transforms: ResolvedVc<EcmascriptInputTransforms>,
     is_external_tracing: bool,
     inline_helpers: bool,
+    layer_for_filename: Option<RcStr>,
 ) -> Result<Vc<ParseResult>> {
     let span = tracing::info_span!(
         "parse ecmascript",
@@ -279,7 +280,14 @@ pub async fn parse(
         ty = display(&ty)
     );
 
-    match parse_internal(source, ty, transforms, is_external_tracing, inline_helpers)
+    match parse_internal(
+        source,
+        ty,
+        transforms,
+        is_external_tracing,
+        inline_helpers,
+        layer_for_filename,
+    )
         .instrument(span)
         .await
     {
@@ -297,6 +305,7 @@ async fn parse_internal(
     transforms: ResolvedVc<EcmascriptInputTransforms>,
     loose_errors: bool,
     inline_helpers: bool,
+    layer_for_filename: Option<RcStr>,
 ) -> Result<Vc<ParseResult>> {
     let content = source.content();
     let fs_path = source.ident().path().owned().await?;
@@ -315,13 +324,13 @@ async fn parse_internal(
                     IssueSeverity::Error
                 },
             }
-            .resolved_cell()
-            .emit();
+                .resolved_cell()
+                .emit();
 
             return Ok(ParseResult::Unparsable {
                 messages: Some(vec![error]),
             }
-            .cell());
+                .cell());
         }
     };
     Ok(match &*content {
@@ -342,8 +351,9 @@ async fn parse_internal(
                             transforms,
                             loose_errors,
                             inline_helpers,
+                            layer_for_filename.clone(),
                         )
-                        .await
+                            .await
                         {
                             Ok(result) => result,
                             Err(e) => {
@@ -358,8 +368,8 @@ async fn parse_internal(
                         let error: RcStr = PrettyPrintError(
                             &anyhow::anyhow!(error).context("failed to convert rope into string"),
                         )
-                        .to_string()
-                        .into();
+                            .to_string()
+                            .into();
                         ReadSourceIssue {
                             // Technically we could supply byte offsets to the issue source, but
                             // that would cause another utf8 error to be produced when we
@@ -373,12 +383,12 @@ async fn parse_internal(
                                 IssueSeverity::Error
                             },
                         }
-                        .resolved_cell()
-                        .emit();
+                            .resolved_cell()
+                            .emit();
                         ParseResult::Unparsable {
                             messages: Some(vec![error]),
                         }
-                        .cell()
+                            .cell()
                     }
                 }
             }
@@ -398,6 +408,7 @@ async fn parse_file_content(
     transforms: &[EcmascriptInputTransform],
     loose_errors: bool,
     inline_helpers: bool,
+    layer_for_filename: Option<RcStr>,
 ) -> Result<Vc<ParseResult>> {
     let source_map: Arc<swc_core::common::SourceMap> = Default::default();
     let (emitter, collector) = IssueEmitter::new(
@@ -541,12 +552,20 @@ async fn parse_file_content(
             };
 
             let mut helpers = helpers.data();
+            // Like next-swc-loader: pass filename with layer query so SWC plugins see
+            // e.g. app/page.tsx?rsc, app/page.tsx?ssr, app/page.tsx?app-pages-browser.
+            let file_path_display: String = if let Some(ref _layer) = layer_for_filename {
+                tracing::info!("[turbopack] filename-with-layer for SWC plugins (next-swc-loader compat)");
+                format!("{}?{}", fs_path.path, _layer)
+            } else {
+                fs_path.path.to_string()
+            };
             let transform_context = TransformContext {
                 comments: &comments,
                 source_map: &source_map,
                 top_level_mark,
                 unresolved_mark,
-                file_path_str: &fs_path.path,
+                file_path_str: file_path_display.as_str(),
                 file_name_str: fs_path.file_name(),
                 file_name_hash: file_path_hash,
                 query_str: query,
@@ -562,8 +581,8 @@ async fn parse_file_content(
                 }
                 anyhow::Ok(())
             }
-            .instrument(span)
-            .await?;
+                .instrument(span)
+                .await?;
 
             if parser_handler.has_errors() {
                 let messages = if let Some(error) = collector_parse.last_emitted_issue() {
@@ -612,7 +631,7 @@ async fn parse_file_content(
         },
         |f, cx| GLOBALS.set(globals_ref, || HANDLER.set(&handler, || f.poll(cx))),
     )
-    .await?;
+        .await?;
     if let ParseResult::Ok {
         globals: ref mut g, ..
     } = result
@@ -653,9 +672,9 @@ impl Issue for ReadSourceIssue {
                      {}",
                     self.error
                 )
-                .into(),
+                    .into(),
             )
-            .resolved_cell(),
+                .resolved_cell(),
         ))
     }
 

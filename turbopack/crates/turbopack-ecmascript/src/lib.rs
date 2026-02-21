@@ -587,7 +587,7 @@ impl EcmascriptAnalyzable for EcmascriptModuleAsset {
             exports: analyze_ref.exports,
             async_module_info,
         }
-        .cell())
+            .cell())
     }
 }
 
@@ -701,12 +701,19 @@ impl EcmascriptModuleAsset {
 impl EcmascriptModuleAsset {
     pub async fn parse(&self) -> Result<Vc<ParseResult>> {
         let options = self.options.await?;
+        let layer_for_filename = self
+            .asset_context
+            .into_trait_ref()
+            .await
+            .ok()
+            .map(|ctx| ctx.layer().name().clone());
         Ok(parse(
             *self.source,
             self.ty,
             *self.transforms,
             options.analyze_mode == AnalyzeMode::Tracing,
             options.inline_helpers,
+            layer_for_filename,
         ))
     }
 
@@ -771,13 +778,13 @@ impl Module for EcmascriptModuleAsset {
             self.ident().path().owned().await?,
             this.side_effect_free_packages.map(|g| *g),
         )
-        .await?
+            .await?
         {
             SideEffectsDeclaration::SideEffectful => ModuleSideEffects::SideEffectful,
             SideEffectsDeclaration::SideEffectFree => ModuleSideEffects::SideEffectFree,
             SideEffectsDeclaration::None => self.analyze().await?.side_effects,
         })
-        .cell())
+            .cell())
     }
 }
 
@@ -824,8 +831,8 @@ impl EcmascriptChunkPlaceable for EcmascriptModuleAsset {
                 .resolve()
                 .await
         }
-        .instrument(span)
-        .await
+            .instrument(span)
+            .await
     }
 }
 
@@ -855,7 +862,7 @@ impl MergeableModule for EcmascriptModuleAsset {
                 entry_points,
                 self.options().to_resolved().await?,
             )
-            .await?,
+                .await?,
         ))
     }
 }
@@ -1005,8 +1012,8 @@ impl EcmascriptModuleContentOptions {
                     .collect(),
             )
         }
-        .instrument(tracing::info_span!("precompute code generation"))
-        .await
+            .instrument(tracing::info_span!("precompute code generation"))
+            .await
     }
 }
 
@@ -1038,7 +1045,7 @@ impl EcmascriptModuleContent {
             Some(&*input),
             None,
         )
-        .await?;
+            .await?;
         emit_content(content, Default::default()).await
     }
 
@@ -1060,7 +1067,7 @@ impl EcmascriptModuleContent {
             None,
             None,
         )
-        .await?;
+            .await?;
         emit_content(content, Default::default()).await
     }
 
@@ -1127,7 +1134,7 @@ impl EcmascriptModuleContent {
                             modules: &modules,
                         }),
                     )
-                    .await?;
+                        .await?;
 
                     Ok((*module, result))
                 })
@@ -1185,11 +1192,11 @@ impl EcmascriptModuleContent {
                 .instrument(tracing::info_span!("emit code"))
                 .await
         }
-        .instrument(tracing::info_span!(
+            .instrument(tracing::info_span!(
             "generate merged code",
             modules = module_options.len()
         ))
-        .await
+            .await
     }
 }
 
@@ -1317,20 +1324,20 @@ async fn merge_modules(
                 span.lo,
                 self.lookup_table,
             )
-            .unwrap_or_else(|err| {
-                self.error = Err(err);
-                span.lo
-            });
+                .unwrap_or_else(|err| {
+                    self.error = Err(err);
+                    span.lo
+                });
             span.hi = CodeGenResultComments::encode_bytepos_with_vec(
                 self.modules_header_width,
                 self.current_module_idx,
                 span.hi,
                 self.lookup_table,
             )
-            .unwrap_or_else(|err| {
-                self.error = Err(err);
-                span.hi
-            });
+                .unwrap_or_else(|err| {
+                    self.error = Err(err);
+                    span.hi
+                });
         }
     }
 
@@ -1425,7 +1432,7 @@ async fn merge_modules(
                     &mut programs[i],
                     &mut lookup_table,
                 )
-                .map_err(|err| (i, err))
+                    .map_err(|err| (i, err))
             })
             .flatten_ok()
             .rev()
@@ -1436,10 +1443,10 @@ async fn merge_modules(
                 match stmt {
                     Stmt::Expr(ExprStmt { expr, .. }) => {
                         if let Expr::Call(CallExpr {
-                            callee: Callee::Expr(callee),
-                            args,
-                            ..
-                        }) = &**expr
+                                              callee: Callee::Expr(callee),
+                                              args,
+                                              ..
+                                          }) = &**expr
                             && callee.is_ident_ref_to("__turbopack_merged_esm__")
                         {
                             let index =
@@ -1455,9 +1462,9 @@ async fn merge_modules(
                                         &mut programs[index],
                                         &mut lookup_table,
                                     )
-                                    .map_err(|err| (index, err))?
-                                    .into_iter()
-                                    .rev(),
+                                        .map_err(|err| (index, err))?
+                                        .into_iter()
+                                        .rev(),
                                 );
                             }
                             continue;
@@ -1936,11 +1943,11 @@ async fn process_parse_result(
             })
         },
     )
-    .instrument(tracing::trace_span!(
+        .instrument(tracing::trace_span!(
         "process parse result",
         ident = display(ident.to_string().await?),
     ))
-    .await
+        .await
 }
 
 /// Try to avoid cloning the AST and Globals by unwrapping the ReadRef (and cloning otherwise).
@@ -1970,7 +1977,7 @@ async fn with_consumed_parse_result<T>(
             Either::Left(eval_context),
             Either::Left(Default::default()),
         )
-        .await;
+            .await;
     };
 
     let parsed = parsed.final_read_hint().await?;
@@ -1979,13 +1986,13 @@ async fn with_consumed_parse_result<T>(
             let mut parsed = ReadRef::try_unwrap(parsed);
             let (program, source_map, globals, eval_context, comments) = match &mut parsed {
                 Ok(ParseResult::Ok {
-                    program,
-                    source_map,
-                    globals,
-                    eval_context,
-                    comments,
-                    ..
-                }) => (
+                       program,
+                       source_map,
+                       globals,
+                       eval_context,
+                       comments,
+                       ..
+                   }) => (
                     program.take(),
                     &*source_map,
                     &*globals,
@@ -2126,7 +2133,7 @@ async fn emit_content(
         strict,
         additional_ids,
     }
-    .cell())
+        .cell())
 }
 
 #[instrument(level = Level::TRACE, skip_all, name = "apply code generation")]
@@ -2395,7 +2402,7 @@ impl SourceMapper for CodeGenResultSourceMap {
                         sp.hi,
                         lookup_table,
                     )
-                    .1,
+                        .1,
                 })
             }
         }
@@ -2423,7 +2430,7 @@ impl SourceMapper for CodeGenResultSourceMap {
                         sp.hi,
                         lookup_table,
                     )
-                    .1,
+                        .1,
                 })
             }
         }
@@ -2451,7 +2458,7 @@ impl SourceMapper for CodeGenResultSourceMap {
                         sp.hi,
                         lookup_table,
                     )
-                    .1,
+                        .1,
                 })
             }
         }
@@ -2488,7 +2495,7 @@ impl SourceMapper for CodeGenResultSourceMap {
                             sp_lhs.hi,
                             lookup_table,
                         )
-                        .1,
+                            .1,
                     },
                     Span {
                         lo: lo_rhs,
@@ -2497,7 +2504,7 @@ impl SourceMapper for CodeGenResultSourceMap {
                             sp_rhs.hi,
                             lookup_table,
                         )
-                        .1,
+                            .1,
                     },
                 )
             }
@@ -2526,7 +2533,7 @@ impl SourceMapper for CodeGenResultSourceMap {
                         sp.hi,
                         lookup_table,
                     )
-                    .1,
+                        .1,
                 })
             }
         }
@@ -2557,7 +2564,7 @@ impl SourceMapper for CodeGenResultSourceMap {
                         sp.hi,
                         lookup_table,
                     )
-                    .1,
+                        .1,
                 })
             }
         }
@@ -2815,14 +2822,14 @@ fn encode_module_into_comment_span(
         comment.span.lo,
         lookup_table.clone(),
     )
-    .unwrap();
+        .unwrap();
     comment.span.hi = CodeGenResultComments::encode_bytepos(
         modules_header_width,
         module as u32,
         comment.span.hi,
         lookup_table,
     )
-    .unwrap();
+        .unwrap();
     comment
 }
 
@@ -3063,8 +3070,8 @@ mod tests {
             module_count.wrapping_sub(5),
             module_count.wrapping_sub(1),
         ]
-        .into_iter()
-        .filter(|&m| m < module_count)
+            .into_iter()
+            .filter(|&m| m < module_count)
         {
             let encoded = CodeGenResultComments::encode_bytepos(
                 modules_header_width,
@@ -3072,7 +3079,7 @@ mod tests {
                 pos,
                 lookup_table.clone(),
             )
-            .unwrap();
+                .unwrap();
             let (decoded_module, decoded_pos) =
                 CodeGenResultComments::decode_bytepos(modules_header_width, encoded, &lookup_table);
             assert_eq!(
@@ -3151,7 +3158,7 @@ mod tests {
                 BytePos(pos),
                 table.clone(),
             )
-            .unwrap();
+                .unwrap();
             assert_eq!(encoded.0, result);
 
             // Ensure that the correct original module and bytepos are stored when overflow occurs

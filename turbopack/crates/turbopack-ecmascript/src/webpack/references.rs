@@ -32,8 +32,9 @@ pub async fn module_references(
         *transforms,
         false,
         false,
+        None,
     )
-    .await?;
+        .await?;
     match &*parsed {
         ParseResult::Ok {
             program,
@@ -83,7 +84,7 @@ impl Visit for ModuleReferencesVisitor<'_> {
                     runtime: self.runtime,
                     transforms: self.transforms,
                 }
-                .resolved_cell(),
+                    .resolved_cell(),
             ));
         }
         call.visit_children_with(self);

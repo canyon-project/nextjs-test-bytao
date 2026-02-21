@@ -39,10 +39,10 @@ pub enum WebpackRuntime {
 fn iife(stmt: &Stmt) -> Option<&Vec<Stmt>> {
     if let Stmt::Expr(ExprStmt { expr, .. }) = &stmt
         && let Expr::Call(CallExpr {
-            callee: Callee::Expr(callee),
-            args,
-            ..
-        }) = unparen(expr)
+                              callee: Callee::Expr(callee),
+                              args,
+                              ..
+                          }) = unparen(expr)
     {
         if !args.is_empty() {
             return None;
@@ -164,10 +164,10 @@ impl Visit for RequirePrefixVisitor {
             && name == "require"
             && let [ExprOrSpread { spread: None, expr }] = &call.args[..]
             && let Some(BinExpr {
-                op: BinaryOp::Add,
-                left,
-                ..
-            }) = expr.as_bin()
+                            op: BinaryOp::Add,
+                            left,
+                            ..
+                        }) = expr.as_bin()
         {
             self.result = left.as_lit().cloned();
             return;
@@ -196,8 +196,9 @@ pub async fn webpack_runtime(
         transforms,
         false,
         false,
+        None,
     )
-    .await?;
+        .await?;
     match &*parsed {
         ParseResult::Ok {
             program,
@@ -225,7 +226,7 @@ pub async fn webpack_runtime(
                         chunk_request_expr: value,
                         context_path: source.ident().path().await?.parent(),
                     }
-                    .cell());
+                        .cell());
                 }
             }
         }

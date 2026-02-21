@@ -3,7 +3,8 @@
 name: Build next-swc native (bytao)
 
 on:
-  workflow_dispatch:
+  push:
+    main
 
 concurrency:
   group: ${{ format('{0}-sha-{1}', github.workflow, github.sha) }}

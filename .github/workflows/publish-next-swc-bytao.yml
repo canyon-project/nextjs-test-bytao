@@ -1,4 +1,4 @@
-# 仅构建 next-swc 多平台 native，合并后的 .node 作为 workflow 产物上报，不发布 npm
+# 仅构建 next-swc macOS native，.node 作为 workflow 产物上报，不发布 npm
 # 手动触发；不构建 next、不部署
 name: Build next-swc native (bytao)
 
@@ -17,13 +17,7 @@ env:
 
 jobs:
   build-native:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: macos-latest
-            target: aarch64-apple-darwin
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,7 +37,7 @@ jobs:
       - name: Install Rust
         uses: ./.github/actions/setup-rust
         with:
-          targets: ${{ matrix.target }}
+          targets: aarch64-apple-darwin
 
       - name: Get pnpm store path
         id: pnpm-store
@@ -60,32 +54,18 @@ jobs:
 
       - name: Clear native dir
         run: rm -rf packages/next-swc/native
-        if: runner.os != 'Windows'
 
-      - name: Clear native dir (Windows)
-        run: if (Test-Path packages/next-swc/native) { Remove-Item -Recurse -Force packages/next-swc/native }
-        if: runner.os == 'Windows'
-
-      - name: Build native (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Build native
         run: |
           cd packages/next-swc
-          npm run build-native-release -- --target ${{ matrix.target }}
-        env:
-          CARGO_TERM_COLOR: always
-
-      - name: Build native (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          cd packages/next-swc
-          npm run build-native-release -- --target ${{ matrix.target }}
+          npm run build-native-release -- --target aarch64-apple-darwin
         env:
           CARGO_TERM_COLOR: always
 
       - name: Upload next-swc native artifact
         uses: actions/upload-artifact@v4
         with:
-          name: next-swc-native-${{ matrix.target }}
+          name: next-swc-native-aarch64-apple-darwin
           path: packages/next-swc/native/*.node
 
   merge-and-upload:

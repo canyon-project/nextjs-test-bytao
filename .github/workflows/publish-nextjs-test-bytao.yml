@@ -63,7 +63,7 @@ jobs:
       contents: read
       id-token: write
     env:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
     steps:
       - name: Setup node
         uses: actions/setup-node@v4
@@ -94,7 +94,7 @@ jobs:
             ${{ github.sha }}-${{ github.run_number }}-${{ github.run_attempt }}
 
       - name: Configure npm auth
-        run: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
+        run: echo "//registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN" >> ~/.npmrc
 
       - name: Publish as nextjs-test-bytao
         run: node ./scripts/publish-nextjs-test-bytao.js
